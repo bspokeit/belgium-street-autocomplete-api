@@ -1,0 +1,56 @@
+{
+  "name": "belgium-street-autocomplete-api",
+  "version": "1.0.0",
+  "description": "A street autocomplete API for Belgium using Typesense and Fastify.",
+  "author": {
+    "name": "Philippe Mertens",
+    "email": "mertensph@gmail.com"
+  },
+  "contributors": [
+    {
+      "name": "Bspoke IT SRL",
+      "url": "https://bspoke-it.com"
+    }
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/api/index.js",
+    "dev": "tsx watch src/api/index.ts",
+    "import": "tsx src/scripts/import.ts",
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js,json,md}": "prettier --write"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^11.0.0",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^17.4.2",
+    "fast-xml-parser": "^5.8.0",
+    "fastify": "^5.8.5",
+    "pino": "^10.3.1",
+    "proj4": "^2.20.9",
+    "sax": "^1.6.0",
+    "typesense": "^3.0.6",
+    "unzipper": "^0.12.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "@types/proj4": "^2.19.0",
+    "@types/sax": "^1.2.7",
+    "@types/unzipper": "^0.10.11",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.8.4",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

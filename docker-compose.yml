@@ -1,0 +1,32 @@
+services:
+  typesense:
+    image: typesense/typesense:26.0
+    restart: unless-stopped
+    expose:
+      - "8108"
+    volumes:
+      - ./data:/data
+    environment:
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY}
+    command: --data-dir /data --api-key=${TYPESENSE_API_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8108'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY}
+      TYPESENSE_HOST: typesense
+      API_KEYS: ${API_KEYS}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      typesense:
+        condition: service_healthy

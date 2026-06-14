@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Belgium Address Autocomplete — Test UI</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .lang-switcher {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+
+    .lang-btn {
+      padding: 5px 14px;
+      border: 1px solid #ddd;
+      border-radius: 99px;
+      background: #fff;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: #555;
+      transition: all 0.15s;
+    }
+
+    .lang-btn:hover {
+      border-color: #4f7ef8;
+      color: #4f7ef8;
+    }
+
+    .lang-btn.active {
+      background: #4f7ef8;
+      border-color: #4f7ef8;
+      color: #fff;
+    }
+
+    .search-box {
+      width: 100%;
+      max-width: 600px;
+      position: relative;
+    }
+
+    .config {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .config input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      background: #fff;
+    }
+
+    .config input::placeholder {
+      color: #aaa;
+    }
+
+    #query {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      transition: border-color 0.15s;
+    }
+
+    #query:focus {
+      border-color: #4f7ef8;
+    }
+
+    #status {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+
+    #results {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-card {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .result-card .label {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .result-card .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 16px;
+      font-size: 0.82rem;
+      color: #555;
+    }
+
+    .result-card .fields span {
+      color: #999;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 500;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .badge-brussels {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .badge-flanders {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge-wallonia {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .error {
+      color: #dc2626;
+      font-size: 0.9rem;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Belgium Address Autocomplete</h1>
+  <p class="subtitle">Test UI — queries the local API at <code>http://localhost:3000</code></p>
+  <div class="lang-switcher">
+    <button class="lang-btn active" data-lang="fr">FR</button>
+    <button class="lang-btn" data-lang="nl">NL</button>
+    <button class="lang-btn" data-lang="de">DE</button>
+  </div>
+  <div class="search-box">
+    <div class="config">
+      <input id="apiKey" type="password" placeholder="X-Api-Key (leave empty if not set)" />
+      <input id="limit" type="number" value="8" min="1" max="20" style="width:80px;flex:none" title="Result limit" />
+    </div>
+    <input id="query" type="text" placeholder="Type an address…" autocomplete="off" />
+    <div id="status"></div>
+  </div>
+  <div id="results"></div>
+  <script>
+    const queryEl = document.getElementById('query');
+    const apiKeyEl = document.getElementById('apiKey');
+    const limitEl = document.getElementById('limit');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+
+    const BADGE = {
+      fr: { Bruxelles: ['Bruxelles', 'badge-brussels'], Flandre: ['Flandre', 'badge-flanders'], Wallonie: ['Wallonie', 'badge-wallonia'] },
+      nl: { Bruxelles: ['Brussel', 'badge-brussels'], Flandre: ['Vlaanderen', 'badge-flanders'], Wallonie: ['Wallonië', 'badge-wallonia'] },
+      de: { Bruxelles: ['Brüssel', 'badge-brussels'], Flandre: ['Flandern', 'badge-flanders'], Wallonie: ['Wallonien', 'badge-wallonia'] },
+    };
+
+    const I18N = {
+      fr: {
+        subtitle: 'Interface de test — interroge l\'API locale sur',
+        placeholder: 'Tapez une adresse…',
+        searching: 'Recherche…',
+        noResults: 'Aucun résultat.',
+        apiError: 'Impossible de joindre l\'API. Est-elle démarrée ?',
+        results: (n) => `${n} résultat${n !== 1 ? 's' : ''}`,
+        street: 'Rue',
+        municipality: 'Commune',
+        postalCode: 'Code postal',
+        coordinates: 'Coordonnées',
+      },
+      nl: {
+        subtitle: 'Test UI — bevraagt de lokale API op',
+        placeholder: 'Typ een adres…',
+        searching: 'Zoeken…',
+        noResults: 'Geen resultaten.',
+        apiError: 'Kan de API niet bereiken. Is ze gestart?',
+        results: (n) => `${n} resultaat${n !== 1 ? 'en' : ''}`,
+        street: 'Straat',
+        municipality: 'Gemeente',
+        postalCode: 'Postcode',
+        coordinates: 'Coördinaten',
+      },
+      de: {
+        subtitle: 'Test-UI — fragt die lokale API ab unter',
+        placeholder: 'Adresse eingeben…',
+        searching: 'Suche…',
+        noResults: 'Keine Ergebnisse.',
+        apiError: 'API nicht erreichbar. Läuft sie?',
+        results: (n) => `${n} Ergebnis${n !== 1 ? 'se' : ''}`,
+        street: 'Straße',
+        municipality: 'Gemeinde',
+        postalCode: 'Postleitzahl',
+        coordinates: 'Koordinaten',
+      },
+    };
+
+    let activeLang = 'fr';
+    let debounceTimer;
+
+    function t(key, ...args) {
+      const val = I18N[activeLang][key];
+      return typeof val === 'function' ? val(...args) : val;
+    }
+
+    function applyLang() {
+      document.querySelector('p.subtitle').innerHTML =
+        `${t('subtitle')} <code>http://localhost:3000</code>`;
+      queryEl.placeholder = t('placeholder');
+      const q = queryEl.value.trim();
+      if (q.length >= 3) search(q);
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeLang = btn.dataset.lang;
+        applyLang();
+      });
+    });
+
+    queryEl.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const q = queryEl.value.trim();
+      if (q.length < 3) {
+        resultsEl.innerHTML = '';
+        statusEl.textContent = '';
+        return;
+      }
+      debounceTimer = setTimeout(() => search(q), 250);
+    });
+
+    async function search(q) {
+      statusEl.textContent = t('searching');
+      resultsEl.innerHTML = '';
+
+      const limit = Number(limitEl.value) || 8;
+      const apiKey = apiKeyEl.value.trim();
+      const headers = apiKey ? { 'X-Api-Key': apiKey } : {};
+
+      try {
+        const res = await fetch(
+          `http://localhost:3000/address?q=${encodeURIComponent(q)}&limit=${limit}`,
+          { headers },
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          statusEl.textContent = '';
+          resultsEl.innerHTML = `<div class="error">Error ${res.status}: ${data.error ?? 'unknown'}</div>`;
+          return;
+        }
+
+        statusEl.textContent = t('results', data.length);
+        resultsEl.innerHTML = data.length === 0
+          ? `<div class="error">${t('noResults')}</div>`
+          : data.map(renderCard).join('');
+      } catch (err) {
+        statusEl.textContent = '';
+        resultsEl.innerHTML = `<div class="error">${t('apiError')}</div>`;
+      }
+    }
+
+    function renderCard(a) {
+      const [regionLabel, regionClass] = BADGE[activeLang][a.region] ?? [a.region, ''];
+      const badge = regionLabel
+        ? `<span class="badge ${regionClass}">${regionLabel}</span>`
+        : '';
+
+      const street = a[`street_${activeLang}`] || a.street_fr || a.street_nl || a.street_de || '—';
+      const municipality = a[`municipality_${activeLang}`] || a.municipality_fr || a.municipality_nl || a.municipality_de || '—';
+
+      return `
+      <div class="result-card">
+        <div class="label">${street} ${a.house_number}, ${a.postal_code} ${municipality}${badge}</div>
+        <div class="fields">
+          <div><span>${t('street')}</span><br>${street}</div>
+          <div><span>${t('municipality')}</span><br>${municipality}</div>
+          <div><span>${t('postalCode')}</span><br>${a.postal_code || '—'}</div>
+          <div><span>${t('coordinates')}</span><br>${a.lat}, ${a.lng}</div>
+        </div>
+      </div>`;
+    }
+  </script>
+</body>
+
+</html>
